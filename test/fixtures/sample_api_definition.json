@@ -1,0 +1,199 @@
+{
+  "modules": {
+    "product": {
+      "rootPath": "product",
+      "controllers": {
+        "ProductController": {
+          "controllerName": "ProductController",
+          "controllerGroupName": "Product",
+          "isIntegrationService": false,
+          "actions": {
+            "GetListAsync": {
+              "uniqueName": "GetListAsync",
+              "name": "GetListAsync",
+              "httpMethod": "GET",
+              "url": "/api/app/product",
+              "summary": "Get a paged list of products",
+              "parameters": [
+                {
+                  "name": "skipCount",
+                  "type": "System.Int32",
+                  "typeSimple": "number",
+                  "bindingSourceId": "Query",
+                  "isRequired": false
+                },
+                {
+                  "name": "maxResultCount",
+                  "type": "System.Int32",
+                  "typeSimple": "number",
+                  "bindingSourceId": "Query",
+                  "isRequired": false
+                }
+              ],
+              "returnValue": {
+                "type": "Volo.Abp.Application.Dtos.PagedResultDto<Demo.Products.ProductDto>",
+                "typeSimple": "PagedResultDto<ProductDto>"
+              }
+            },
+            "GetAsync": {
+              "uniqueName": "GetAsync",
+              "name": "GetAsync",
+              "httpMethod": "GET",
+              "url": "/api/app/product/{id}",
+              "summary": "Get a product by ID",
+              "parameters": [
+                {
+                  "name": "id",
+                  "type": "System.Guid",
+                  "typeSimple": "string",
+                  "bindingSourceId": "Path",
+                  "isRequired": true
+                }
+              ],
+              "returnValue": {
+                "type": "Demo.Products.ProductDto",
+                "typeSimple": "ProductDto"
+              }
+            },
+            "CreateAsync": {
+              "uniqueName": "CreateAsync",
+              "name": "CreateAsync",
+              "httpMethod": "POST",
+              "url": "/api/app/product",
+              "summary": "Create a new product",
+              "parameters": [
+                {
+                  "name": "input",
+                  "type": "Demo.Products.CreateProductDto",
+                  "typeSimple": "CreateProductDto",
+                  "bindingSourceId": "Body",
+                  "isRequired": true
+                }
+              ],
+              "returnValue": {
+                "type": "Demo.Products.ProductDto",
+                "typeSimple": "ProductDto"
+              }
+            },
+            "UpdateAsync": {
+              "uniqueName": "UpdateAsync",
+              "name": "UpdateAsync",
+              "httpMethod": "PUT",
+              "url": "/api/app/product/{id}",
+              "summary": "Update an existing product",
+              "parameters": [
+                {
+                  "name": "id",
+                  "type": "System.Guid",
+                  "typeSimple": "string",
+                  "bindingSourceId": "Path",
+                  "isRequired": true
+                },
+                {
+                  "name": "input",
+                  "type": "Demo.Products.UpdateProductDto",
+                  "typeSimple": "UpdateProductDto",
+                  "bindingSourceId": "Body",
+                  "isRequired": true
+                }
+              ],
+              "returnValue": {
+                "type": "Demo.Products.ProductDto",
+                "typeSimple": "ProductDto"
+              }
+            },
+            "DeleteAsync": {
+              "uniqueName": "DeleteAsync",
+              "name": "DeleteAsync",
+              "httpMethod": "DELETE",
+              "url": "/api/app/product/{id}",
+              "summary": "Delete a product",
+              "parameters": [
+                {
+                  "name": "id",
+                  "type": "System.Guid",
+                  "typeSimple": "string",
+                  "bindingSourceId": "Path",
+                  "isRequired": true
+                }
+              ],
+              "returnValue": {
+                "type": "System.Void",
+                "typeSimple": "void"
+              }
+            }
+          }
+        }
+      }
+    },
+    "category": {
+      "rootPath": "category",
+      "controllers": {
+        "CategoryController": {
+          "controllerName": "CategoryController",
+          "controllerGroupName": "Category",
+          "isIntegrationService": false,
+          "actions": {
+            "GetListAsync": {
+              "uniqueName": "CategoryGetListAsync",
+              "name": "GetListAsync",
+              "httpMethod": "GET",
+              "url": "/api/app/category",
+              "summary": "Get all categories",
+              "parameters": [],
+              "returnValue": {
+                "type": "Volo.Abp.Application.Dtos.ListResultDto<Demo.Categories.CategoryDto>",
+                "typeSimple": "ListResultDto<CategoryDto>"
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "types": {
+    "Demo.Products.ProductDto": {
+      "isEnum": false,
+      "baseType": "Volo.Abp.Application.Dtos.AuditedEntityDto<System.Guid>",
+      "properties": [
+        { "name": "Name", "type": "System.String", "typeSimple": "string", "isRequired": true },
+        { "name": "Price", "type": "System.Decimal", "typeSimple": "number", "isRequired": true },
+        { "name": "Description", "type": "System.String", "typeSimple": "string", "isRequired": false },
+        { "name": "CategoryId", "type": "System.Guid", "typeSimple": "string", "isRequired": false },
+        { "name": "Status", "type": "Demo.Products.ProductStatus", "typeSimple": "ProductStatus", "isRequired": true }
+      ]
+    },
+    "Demo.Products.CreateProductDto": {
+      "isEnum": false,
+      "properties": [
+        { "name": "Name", "type": "System.String", "typeSimple": "string", "isRequired": true },
+        { "name": "Price", "type": "System.Decimal", "typeSimple": "number", "isRequired": true },
+        { "name": "Description", "type": "System.String", "typeSimple": "string", "isRequired": false },
+        { "name": "CategoryId", "type": "System.Guid", "typeSimple": "string", "isRequired": false }
+      ]
+    },
+    "Demo.Products.UpdateProductDto": {
+      "isEnum": false,
+      "properties": [
+        { "name": "Name", "type": "System.String", "typeSimple": "string", "isRequired": true },
+        { "name": "Price", "type": "System.Decimal", "typeSimple": "number", "isRequired": true },
+        { "name": "Description", "type": "System.String", "typeSimple": "string", "isRequired": false },
+        { "name": "CategoryId", "type": "System.Guid", "typeSimple": "string", "isRequired": false }
+      ]
+    },
+    "Demo.Products.ProductStatus": {
+      "isEnum": true,
+      "enumNames": ["Draft", "Published", "Archived"],
+      "enumValues": [0, 1, 2],
+      "properties": []
+    },
+    "Demo.Categories.CategoryDto": {
+      "isEnum": false,
+      "baseType": "Volo.Abp.Application.Dtos.EntityDto<System.Guid>",
+      "properties": [
+        { "name": "Name", "type": "System.String", "typeSimple": "string", "isRequired": true },
+        { "name": "Description", "type": "System.String", "typeSimple": "string", "isRequired": false }
+      ]
+    }
+  }
+}
