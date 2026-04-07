@@ -202,8 +202,10 @@ String _renderService({
         final trailing = i < method.allParams.length - 1 ? ',' : ',';
 
         if (param.isOptional) {
+          final nullableType =
+              param.type.endsWith('?') ? param.type : '${param.type}?';
           buf.writeln(
-              '    $annotation ${param.type}? ${param.varName}$trailing');
+              '    $annotation $nullableType ${param.varName}$trailing');
         } else {
           buf.writeln(
             '    $annotation ${param.type} ${param.varName}$trailing',

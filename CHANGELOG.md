@@ -1,3 +1,9 @@
+## 0.1.1
+
+- Fix: double nullable types (`String??`, `bool??`, `int??`) in generated service parameters.
+  When ABP marks a parameter as both nullable in its type (e.g., `typeSimple: "date?"`) and
+  optional (`isRequired: false`), the generator no longer appends a second `?`.
+
 ## 0.1.0
 
 - Initial release.

@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter_abp_proxy/src/service_generator.dart';
 import 'package:test/test.dart';
 
@@ -226,6 +228,80 @@ void main() {
       expect(result.files, isEmpty);
     });
   });
+
+    test('does not produce double nullable types (Type??)', () {
+      final tmpDir = Directory.systemTemp.createTempSync('abp_proxy_test_');
+      try {
+        final apiDef = <String, dynamic>{
+          'types': <String, dynamic>{},
+          'modules': <String, dynamic>{
+            'product': {
+              'rootPath': 'product',
+              'controllers': <String, dynamic>{
+                'ProductController': <String, dynamic>{
+                  'controllerName': 'ProductController',
+                  'controllerGroupName': 'Product',
+                  'actions': <String, dynamic>{
+                    'GetList': <String, dynamic>{
+                      'uniqueName': 'GetList',
+                      'name': 'GetList',
+                      'httpMethod': 'GET',
+                      'url': '/api/product',
+                      'parameters': [
+                        {
+                          'name': 'StartTime',
+                          'type': 'System.DateTime',
+                          'typeSimple': 'date?',
+                          'bindingSourceId': 'Query',
+                          'isRequired': false,
+                        },
+                        {
+                          'name': 'IsActive',
+                          'type': 'System.Nullable<System.Boolean>',
+                          'typeSimple': 'boolean?',
+                          'bindingSourceId': 'Query',
+                          'isRequired': false,
+                        },
+                        {
+                          'name': 'Filter',
+                          'type': 'System.String',
+                          'typeSimple': 'string',
+                          'bindingSourceId': 'Query',
+                          'isRequired': false,
+                        },
+                      ],
+                      'returnValue': {
+                        'type': 'System.String',
+                        'typeSimple': 'string',
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        };
+
+        final result = generateServices(
+          apiDef,
+          tmpDir.path,
+          {},
+        );
+
+        expect(result.files, hasLength(1));
+        final content = File(result.files[0].filePath).readAsStringSync();
+
+        // Must not contain double nullable (??)
+        expect(content, isNot(contains('??')));
+
+        // Should contain single nullable for optional params
+        expect(content, contains('DateTime?'));
+        expect(content, contains('bool?'));
+        expect(content, contains('String?'));
+      } finally {
+        tmpDir.deleteSync(recursive: true);
+      }
+    });
 
   group('ServiceGenerationResult', () {
     test('stores files list', () {

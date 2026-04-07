@@ -79,7 +79,7 @@ void writeLockFile(
   final lockFile = ProxyLockFile(
     generatedAt: DateTime.now().toUtc().toIso8601String(),
     sourceUrl: sourceUrl,
-    generatorVersion: '0.1.0',
+    generatorVersion: '0.1.1',
     generatedModules: generatedModules,
     moduleCounts: moduleCounts,
   );
