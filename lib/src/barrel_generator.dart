@@ -91,8 +91,11 @@ void _generateBarrelsRecursive(
 
   if (exports.isEmpty) return;
 
-  // Skip barrel at root level (depth 0) to avoid issues
-  // Actually, generate at all levels for convenience
+  // Skip barrels at depth 0 (root) and depth 1 (module level) to avoid
+  // ambiguous export errors when the same class name exists in multiple modules.
+  // Users should import per-controller barrels or specific files directly.
+  if (depth <= 1) return;
+
   final buf = StringBuffer();
   buf.writeln('// GENERATED FILE — DO NOT EDIT BY HAND');
   buf.writeln('// Source: $sourceUrl');

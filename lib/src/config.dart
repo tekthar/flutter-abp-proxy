@@ -13,6 +13,7 @@ const primitiveTypeMap = <String, String>{
   'date': 'DateTime',
   'object': 'dynamic',
   'void': 'void',
+  'enum': 'int',
 
   // Full .NET type names
   'System.String': 'String',

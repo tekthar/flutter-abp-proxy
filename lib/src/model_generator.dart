@@ -534,6 +534,20 @@ class NameValue<T> {
   final T? value;
 
   const NameValue({this.name, this.value});
+
+  factory NameValue.fromJson(Map<String, dynamic> json) {
+    return NameValue<T>(
+      name: json['name'] as String?,
+      value: json['value'] as T?,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'name': name,
+      'value': value,
+    };
+  }
 }
 ''';
 }
@@ -589,9 +603,15 @@ String _generateFreezedClass(
 
     final isRequired = p['isRequired'] == true;
 
+    var dartName = pascalToCamel(propName);
+    // Escape Dart reserved words for property names
+    if (dartReservedWords.contains(dartName)) {
+      dartName = '$dartName\$';
+    }
+
     properties.add(
       _PropertyInfo(
-        name: pascalToCamel(propName),
+        name: dartName,
         jsonName: propName,
         type: dartType,
         isRequired: isRequired,
@@ -634,28 +654,32 @@ String _generateFreezedClass(
 
   buf.writeln('@freezed');
   buf.writeln(
-    'class $shortName$genericSuffix with _\$$shortName$genericSuffix {',
+    'abstract class $shortName$genericSuffix with _\$$shortName$genericSuffix {',
   );
-  buf.writeln('  const factory $shortName$genericSuffix({');
+  if (properties.isEmpty) {
+    buf.writeln('  const factory $shortName$genericSuffix() = _$shortName;');
+  } else {
+    buf.writeln('  const factory $shortName$genericSuffix({');
 
-  for (final prop in properties) {
-    // Add @JsonKey if the Dart name differs from the JSON name
-    final dartName = prop.name;
-    final jsonName = prop.jsonName;
-    if (dartName != pascalToCamel(jsonName)) {
-      buf.writeln("    @JsonKey(name: '$jsonName')");
+    for (final prop in properties) {
+      // Add @JsonKey if the Dart name differs from the JSON name
+      final dartName = prop.name;
+      final jsonName = prop.jsonName;
+      if (dartName != pascalToCamel(jsonName)) {
+        buf.writeln("    @JsonKey(name: '$jsonName')");
+      }
+
+      if (prop.isRequired && !prop.type.endsWith('?')) {
+        buf.writeln('    required ${prop.type} ${prop.name},');
+      } else {
+        final nullableType =
+            prop.type.endsWith('?') ? prop.type : '${prop.type}?';
+        buf.writeln('    $nullableType ${prop.name},');
+      }
     }
 
-    if (prop.isRequired && !prop.type.endsWith('?')) {
-      buf.writeln('    required ${prop.type} ${prop.name},');
-    } else {
-      final nullableType =
-          prop.type.endsWith('?') ? prop.type : '${prop.type}?';
-      buf.writeln('    $nullableType ${prop.name},');
-    }
+    buf.writeln('  }) = _$shortName;');
   }
-
-  buf.writeln('  }) = _$shortName;');
   buf.writeln();
 
   if (genericParams.isEmpty) {
@@ -836,7 +860,7 @@ part 'abp_error.g.dart';
 
 /// ABP structured error response envelope.
 @freezed
-class RemoteServiceErrorResponse with _\$RemoteServiceErrorResponse {
+abstract class RemoteServiceErrorResponse with _\$RemoteServiceErrorResponse {
   const factory RemoteServiceErrorResponse({
     RemoteServiceErrorInfo? error,
   }) = _RemoteServiceErrorResponse;
@@ -847,7 +871,7 @@ class RemoteServiceErrorResponse with _\$RemoteServiceErrorResponse {
 
 /// ABP error info with code, message, details, and validation errors.
 @freezed
-class RemoteServiceErrorInfo with _\$RemoteServiceErrorInfo {
+abstract class RemoteServiceErrorInfo with _\$RemoteServiceErrorInfo {
   const factory RemoteServiceErrorInfo({
     String? code,
     String? message,
@@ -862,7 +886,7 @@ class RemoteServiceErrorInfo with _\$RemoteServiceErrorInfo {
 
 /// ABP validation error entry.
 @freezed
-class RemoteServiceValidationErrorInfo
+abstract class RemoteServiceValidationErrorInfo
     with _\$RemoteServiceValidationErrorInfo {
   const factory RemoteServiceValidationErrorInfo({
     String? message,

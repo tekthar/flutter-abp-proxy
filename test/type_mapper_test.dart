@@ -161,6 +161,47 @@ void main() {
       expect(result.dartType, 'Map<String, dynamic>');
     });
 
+    test('maps C# array notation Type[] to List', () {
+      final typesMap = <String, dynamic>{
+        'MyApp.ProductDto': {
+          'isEnum': false,
+          'properties': [],
+        },
+      };
+      final result = mapType('MyApp.ProductDto[]', null, typesMap);
+      expect(result.dartType, 'List<ProductDto>');
+    });
+
+    test('maps NameValue without generic args to NameValue<String>', () {
+      final result = mapType(
+        'Volo.Abp.NameValue',
+        null,
+        {},
+      );
+      expect(result.dartType, 'NameValue<String>');
+      expect(result.imports, hasLength(1));
+      expect(result.imports[0].typeName, 'NameValue');
+      expect(result.imports[0].isAbpShared, true);
+    });
+
+    test('maps NameValue in List via typeSimple to List<NameValue<String>>', () {
+      final result = mapType(
+        'System.Collections.Generic.List<Volo.Abp.NameValue>',
+        '[NameValue]',
+        {},
+      );
+      expect(result.dartType, 'List<NameValue<String>>');
+    });
+
+    test('maps NameValue with generic args as-is', () {
+      final result = mapType(
+        'Volo.Abp.NameValue<System.Int32>',
+        null,
+        {},
+      );
+      expect(result.dartType, 'NameValue<int>');
+    });
+
     test('returns dynamic for unknown types', () {
       final result = mapType('Some.Unknown.Type', null, {});
       expect(result.dartType, contains('dynamic'));

@@ -303,6 +303,166 @@ void main() {
       }
     });
 
+    test('keeps at most one @Body, demotes rest to @Query', () {
+      final tmpDir = Directory.systemTemp.createTempSync('abp_proxy_test_');
+      try {
+        final apiDef = <String, dynamic>{
+          'types': <String, dynamic>{
+            'MyApp.UpdateDto': {
+              'isEnum': false,
+              'properties': [],
+            },
+          },
+          'modules': <String, dynamic>{
+            'feature': {
+              'rootPath': 'feature',
+              'controllers': <String, dynamic>{
+                'FeatureController': <String, dynamic>{
+                  'controllerName': 'FeatureController',
+                  'controllerGroupName': 'Feature',
+                  'actions': <String, dynamic>{
+                    'Update': <String, dynamic>{
+                      'uniqueName': 'Update',
+                      'name': 'Update',
+                      'httpMethod': 'PUT',
+                      'url': '/api/feature',
+                      'parameters': [
+                        {
+                          'name': 'providerName',
+                          'type': 'System.String',
+                          'typeSimple': 'string',
+                          'bindingSourceId': 'Body',
+                          'isRequired': false,
+                        },
+                        {
+                          'name': 'providerKey',
+                          'type': 'System.String',
+                          'typeSimple': 'string',
+                          'bindingSourceId': 'Body',
+                          'isRequired': false,
+                        },
+                        {
+                          'name': 'input',
+                          'type': 'MyApp.UpdateDto',
+                          'typeSimple': 'UpdateDto',
+                          'bindingSourceId': 'Body',
+                          'isRequired': true,
+                        },
+                      ],
+                      'returnValue': {
+                        'type': 'System.Void',
+                        'typeSimple': 'void',
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        };
+
+        final result = generateServices(
+          apiDef,
+          tmpDir.path,
+          {
+            'UpdateDto': './feature/feature/models/update_dto',
+          },
+        );
+
+        expect(result.files, hasLength(1));
+        final content = File(result.files[0].filePath).readAsStringSync();
+
+        // Should have exactly one @Body() for the DTO
+        expect('@Body()'.allMatches(content).length, 1);
+        // Scalar params should be @Query()
+        expect(content, contains("@Query('providerName')"));
+        expect(content, contains("@Query('providerKey')"));
+      } finally {
+        tmpDir.deleteSync(recursive: true);
+      }
+    });
+
+    test('converts @Body to @Part in multipart methods', () {
+      final tmpDir = Directory.systemTemp.createTempSync('abp_proxy_test_');
+      try {
+        final apiDef = <String, dynamic>{
+          'types': <String, dynamic>{
+            'MyApp.UploadDto': {
+              'isEnum': false,
+              'properties': [
+                {
+                  'name': 'File',
+                  'type': 'Volo.Abp.Content.IRemoteStreamContent',
+                },
+                {
+                  'name': 'Name',
+                  'type': 'System.String',
+                },
+              ],
+            },
+          },
+          'modules': <String, dynamic>{
+            'upload': {
+              'rootPath': 'upload',
+              'controllers': <String, dynamic>{
+                'UploadController': <String, dynamic>{
+                  'controllerName': 'UploadController',
+                  'controllerGroupName': 'Upload',
+                  'actions': <String, dynamic>{
+                    'Upload': <String, dynamic>{
+                      'uniqueName': 'Upload',
+                      'name': 'Upload',
+                      'httpMethod': 'POST',
+                      'url': '/api/upload',
+                      'parameters': [
+                        {
+                          'name': 'Name',
+                          'type': 'System.String',
+                          'typeSimple': 'string',
+                          'bindingSourceId': 'Body',
+                          'isRequired': false,
+                        },
+                        {
+                          'name': 'File',
+                          'type':
+                              'Volo.Abp.Content.IRemoteStreamContent',
+                          'typeSimple': 'IRemoteStreamContent',
+                          'bindingSourceId': 'Form',
+                          'isRequired': true,
+                        },
+                      ],
+                      'returnValue': {
+                        'type': 'System.String',
+                        'typeSimple': 'string',
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        };
+
+        final result = generateServices(
+          apiDef,
+          tmpDir.path,
+          {},
+        );
+
+        expect(result.files, hasLength(1));
+        final content = File(result.files[0].filePath).readAsStringSync();
+
+        // Must not contain @Body() in a multipart method
+        expect(content, isNot(contains('@Body()')));
+        // Should contain @Part for the converted body param
+        expect(content, contains("@Part(name: 'Name')"));
+        // Should still have @MultiPart
+        expect(content, contains('@MultiPart()'));
+      } finally {
+        tmpDir.deleteSync(recursive: true);
+      }
+    });
+
   group('ServiceGenerationResult', () {
     test('stores files list', () {
       const result = ServiceGenerationResult(files: []);

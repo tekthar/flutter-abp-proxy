@@ -135,6 +135,13 @@ String _resolveFullType(
     return '$innerDart?';
   }
 
+  // Handle C# array notation: "SomeType[]"
+  if (fullName.endsWith('[]')) {
+    final inner = fullName.substring(0, fullName.length - 2);
+    final innerDart = _resolveFullType(inner, typesMap, imports);
+    return 'List<$innerDart>';
+  }
+
   // Handle ABP array notation: "[SomeType]"
   if (fullName.startsWith('[') && fullName.endsWith(']')) {
     final inner = fullName.substring(1, fullName.length - 1);
@@ -224,6 +231,10 @@ String _resolveFullType(
           args.map((a) => _resolveFullType(a, typesMap, imports)).toList();
       return '$shortName<${argTypes.join(', ')}>';
     }
+    // NameValue requires a type argument; default to String when ABP omits it
+    if (shortName == 'NameValue') {
+      return 'NameValue<String>';
+    }
     return shortName;
   }
 
@@ -265,6 +276,10 @@ String _resolveShortType(
     imports.add(
       TypeImport(typeName: shortName, isAbpShared: true, isEnum: false),
     );
+    // NameValue requires a type argument; default to String when ABP omits it
+    if (shortName == 'NameValue') {
+      return 'NameValue<String>';
+    }
     return shortName;
   }
 

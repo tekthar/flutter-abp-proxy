@@ -146,6 +146,8 @@ String _renderService({
   buf.writeln('// Source: $sourceUrl');
   buf.writeln('// Generator: flutter_abp_proxy');
   buf.writeln();
+  buf.writeln("import 'dart:convert';");
+  buf.writeln();
   buf.writeln("import 'package:dio/dio.dart';");
   buf.writeln("import 'package:retrofit/retrofit.dart';");
 
@@ -286,8 +288,19 @@ _MethodData _buildMethodData(
       p['typeSimple'] as String?,
       typesMap,
     );
+    // Skip void-typed parameters (can't be used as method params in Dart)
+    if (mapped.dartType == 'void') continue;
+
     final varName = sanitizeIdentifier(pascalToCamel(p['name'] as String));
-    final isOptional = p['isRequired'] != true && p['defaultValue'] == null;
+    var isOptional = p['isRequired'] != true && p['defaultValue'] == null;
+
+    // Stream/file content params (List<int>) must be non-nullable for Retrofit
+    final paramType = p['type'] as String? ?? '';
+    if (binding == 'Form' &&
+        (streamContentTypes.any(paramType.contains) ||
+            mapped.dartType == 'List<int>')) {
+      isOptional = false;
+    }
 
     final paramInfo = _ParamInfo(
       name: p['name'] as String,
@@ -363,6 +376,71 @@ _MethodData _buildMethodData(
         break;
       }
     }
+  }
+
+  // When the method is multipart (has form params or stream content in body),
+  // Retrofit does not allow @Body() — convert Body params to Form (@Part).
+  final isMultipart =
+      formParams.isNotEmpty || hasStreamInBody;
+  if (isMultipart && bodyParams.isNotEmpty) {
+    for (final bp in bodyParams) {
+      final converted = _ParamInfo(
+        name: bp.name,
+        varName: bp.varName,
+        apiName: bp.apiName,
+        type: bp.type,
+        isOptional: bp.isOptional,
+        isArray: bp.isArray,
+        binding: 'Form',
+      );
+      formParams.add(converted);
+      // Update in allParams too
+      final idx = allParams.indexWhere((p) => p.name == bp.name);
+      if (idx >= 0) {
+        allParams[idx] = converted;
+      }
+    }
+    bodyParams.clear();
+  }
+
+  // Retrofit allows at most ONE @Body() per method. When multiple body params
+  // exist, keep the complex DTO as @Body() and demote scalar params to @Query().
+  if (bodyParams.length > 1) {
+    // Find the best candidate for @Body(): prefer complex types (not primitives)
+    const scalarTypes = {
+      'String', 'int', 'double', 'bool', 'num', 'DateTime',
+      'String?', 'int?', 'double?', 'bool?', 'num?', 'DateTime?',
+      'dynamic', 'Map<String, dynamic>', 'Map<String, dynamic>?',
+    };
+    _ParamInfo? bodyCandidate;
+    for (final bp in bodyParams) {
+      if (!scalarTypes.contains(bp.type)) {
+        bodyCandidate = bp;
+        break;
+      }
+    }
+
+    final demoted = <_ParamInfo>[];
+    for (final bp in bodyParams) {
+      if (bp != bodyCandidate) {
+        final asQuery = _ParamInfo(
+          name: bp.name,
+          varName: bp.varName,
+          apiName: bp.apiName,
+          type: bp.type,
+          isOptional: bp.isOptional,
+          isArray: bp.isArray,
+          binding: 'Query',
+        );
+        demoted.add(asQuery);
+        queryParams.add(asQuery);
+        final idx = allParams.indexWhere((p) => p.name == bp.name);
+        if (idx >= 0) {
+          allParams[idx] = asQuery;
+        }
+      }
+    }
+    bodyParams.removeWhere((bp) => demoted.any((d) => d.name == bp.name));
   }
 
   return _MethodData(

@@ -2,7 +2,7 @@ name: flutter_abp_proxy
 description: >-
   ABP Framework proxy generator for Flutter. Generates Retrofit services
   and Freezed models from a running ABP backend API definition.
-version: 0.1.1
+version: 0.2.0
 homepage: https://tekthar.com
 repository: https://github.com/abpjs/flutter_abp_proxy
 issue_tracker: https://github.com/abpjs/flutter_abp_proxy/issues
