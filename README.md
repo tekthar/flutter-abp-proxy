@@ -14,12 +14,27 @@ The ABP Framework provides proxy generators for Angular (`@abp/ng.schematics`), 
 
 The ABP backend remains unchanged. Only the client layer is generated.
 
+## Example
+
+A runnable quickstart app is available at
+[tekthar/flutter_abp_proxy_example](https://github.com/tekthar/flutter_abp_proxy_example).
+It points at the public ABP CMS Kit demo backend and shows a login screen and a
+paged blog post list built entirely from generated services and models.
+
+```bash
+git clone https://github.com/tekthar/flutter_abp_proxy_example.git
+cd flutter_abp_proxy_example
+flutter pub get
+flutter run
+```
+
 ## Related Packages
 
 | Package | Description |
 |---|---|
 | [abp-react](https://github.com/abpjs/abp-react) | React frontend for ABP Framework |
 | [create-abp-react](https://github.com/abpjs/create-abp-react) | CLI scaffolding tool for abp-react projects |
+| [flutter_abp_proxy_example](https://github.com/tekthar/flutter_abp_proxy_example) | Runnable Flutter quickstart using this generator |
 | **flutter_abp_proxy** | Proxy generator for Flutter/Dart consumers of ABP APIs |
 
 ## Features

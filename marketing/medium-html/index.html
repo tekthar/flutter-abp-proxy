@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Medium scratch — flutter_abp_proxy</title>
+<style>
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Georgia, serif;
+    max-width: 720px;
+    margin: 40px auto;
+    padding: 0 24px;
+    line-height: 1.7;
+    color: #242424;
+    background: #fff;
+  }
+  h1 { font-size: 42px; line-height: 1.15; margin: 0 0 8px; }
+  .subtitle { font-size: 22px; color: #6b6b6b; font-style: italic; margin: 0 0 32px; }
+  h2 { font-size: 28px; margin: 48px 0 16px; }
+  p { font-size: 20px; margin: 0 0 24px; }
+  a { color: #1a8917; text-decoration: underline; }
+  code {
+    font-family: "Menlo", "Consolas", monospace;
+    background: #f2f2f2;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-size: 0.9em;
+  }
+  pre {
+    background: #f2f2f2;
+    padding: 16px;
+    border-radius: 4px;
+    overflow-x: auto;
+    font-family: "Menlo", "Consolas", monospace;
+    font-size: 16px;
+    line-height: 1.5;
+  }
+  pre code { background: transparent; padding: 0; }
+  ul { font-size: 20px; margin: 0 0 24px; padding-left: 28px; }
+  li { margin-bottom: 8px; }
+  hr { border: none; border-top: 1px solid #e6e6e6; margin: 40px 0; }
+  strong { font-weight: 700; }
+  em { font-style: italic; }
+  .image-placeholder {
+    background: #fff9e6;
+    border: 2px dashed #d4a017;
+    padding: 16px;
+    text-align: center;
+    color: #8a6d0b;
+    font-family: monospace;
+    margin: 24px 0;
+  }
+</style>
+</head>
+<body>
+
+<h1>I stopped hand-writing my Flutter API layer. You can too.</h1>
+<p class="subtitle">How a small CLI turned a 500-file chore into a one-line command.</p>
+
+<p><img src="http://localhost:4567/hero.png" alt="ABP backend connecting to a Flutter app via generated code" style="width: 100%; max-width: 720px;"></p>
+
+<hr>
+
+<p>There's a specific kind of silence that falls over a developer at 11pm when they realize they have to rename a field.</p>
+
+<p>Not a function. Not a variable. A <strong>field</strong> — on a DTO that's been copy-pasted into seventeen places across a Flutter codebase, each copy slightly diverged from the others, each one hand-written against an ABP Framework backend that keeps evolving without me.</p>
+
+<p>I sat there staring at <code>OrderDto</code> — one of forty in my app — and I did the math. Forty DTOs. Each with a <code>fromJson</code>, a <code>toJson</code>, and a hand-rolled Retrofit service. Every time the .NET team shipped a new endpoint, I had to reverse-engineer it from the API docs, invent the Dart shape, wire it up, and hope I'd nailed the nullability.</p>
+
+<p>I was transcribing, not engineering. And I was losing.</p>
+
+<h2>The gap nobody talked about</h2>
+
+<p>If you work with the <a href="https://abp.io">ABP Framework</a>, you probably know the feeling. ABP is a serious .NET backend framework — batteries included, audit trails, multi-tenancy, identity, the whole thing. And the frontend story has always been great: ABP ships <strong>official proxy generators</strong> for Angular, for React, for Blazor, and for C# clients. You run a command, point it at <code>/api/abp/api-definition</code>, and out comes a fully typed client.</p>
+
+<p>Every framework except one.</p>
+
+<p>Flutter developers have been on their own. There is no first-party Dart generator. Every <code>fromJson</code>, every <code>@RestApi()</code> abstract class, every <code>PagedResultDto&lt;T&gt;</code> has to be written and re-written and re-re-written, forever, by hand.</p>
+
+<p>I searched. I asked around. I found a few half-finished GitHub gists and one abandoned Python script that scraped Swagger. Nothing you'd bet a production app on.</p>
+
+<p>So I built it.</p>
+
+<p><img src="http://localhost:4567/desk.png" alt="A developer's desk at night with sticky notes about DTO refactoring" style="width: 100%; max-width: 720px;"></p>
+
+<h2>What "built it" actually means</h2>
+
+<p>The elevator pitch is simple: a Dart CLI called <a href="https://pub.dev/packages/flutter_abp_proxy"><code>flutter_abp_proxy</code></a> that reads the same <code>/api/abp/api-definition</code> endpoint the official generators use, and emits a complete, idiomatic Dart client — <code>@freezed</code> model classes, <code>@RestApi()</code> service classes, enums with <code>@JsonValue</code> annotations, the ABP shared base types like <code>PagedResultDto</code> and <code>AuditedEntityDto</code>, and barrel export files to keep your imports clean.</p>
+
+<p>You run it once. Your networking layer appears.</p>
+
+<pre><code>dart pub global activate flutter_abp_proxy
+flutter_abp_proxy --url https://your-abp-backend.com
+dart run build_runner build --delete-conflicting-outputs</code></pre>
+
+<p>That's the whole thing. Under <code>lib/data/proxy/</code> you now have everything — neatly organized by ABP module, typed end-to-end, ready to drop a <code>Dio</code> client into.</p>
+
+<p>The elevator pitch is the easy part. The actual work was different.</p>
+
+<h2>Why this took longer than I expected</h2>
+
+<p>I thought I was building a transpiler. I was actually building an <strong>etiquette guide for .NET types</strong>.</p>
+
+<p>.NET has opinions about how it describes itself. Some types come back as <code>System.Nullable&lt;System.Int32&gt;</code>. Some come back as <code>System.Int32?</code>. Some come back with the full assembly version string baked in: <code>MyApp.ProductDto, MyApp.Contracts, Version=1.5.92.0, Culture=neutral, PublicKeyToken=null</code>. ABP itself has its own shorthand — <code>[ProductDto]</code> means "list of ProductDto", and <code>{string:int}</code> means "Map&lt;String, int&gt;". Nested C# classes come back with a <code>+</code> delimiter. Generic arity lands as a backtick: <code>List`1</code>.</p>
+
+<p>And that's the <em>easy</em> part.</p>
+
+<p>Then there are the edge cases the type mapper has to survive:</p>
+
+<ul>
+  <li>What do you do when ABP returns <code>NameValue</code> without a type argument, but the Dart <code>NameValue&lt;T&gt;</code> class requires one? (Default to <code>NameValue&lt;String&gt;</code>.)</li>
+  <li>What do you do when a method is marked <code>@MultiPart()</code> and has three <code>@Body()</code> parameters? (Retrofit only allows one body per method. Demote the scalars to <code>@Query()</code>, keep the DTO.)</li>
+  <li>What do you do when the same method has a <code>@Body()</code> DTO <strong>and</strong> a <code>@Part()</code> file upload? (Retrofit forbids this. Convert the body to a form part.)</li>
+  <li>What do you do when a property is named <code>default</code>? (That's a Dart reserved word. Escape it with a <code>$</code> and add a <code>@JsonKey(name: 'default')</code>.)</li>
+  <li>What do you do when a parameter is typed as <code>System.Void</code>? (Skip it. Dart can't have <code>void</code> parameters.)</li>
+  <li>What do you do when Freezed v3 changes how its mixins work? (Generate <code>abstract class</code> instead of <code>class</code>.)</li>
+</ul>
+
+<p>Every single one of those is a real bug I shipped and fixed. My changelog reads like a confessional.</p>
+
+<p><img src="http://localhost:4567/pipeline.png" alt="A code generation pipeline turning an API definition into Dart files" style="width: 100%; max-width: 720px;"></p>
+
+<h2>What it feels like to use</h2>
+
+<p>The first time I re-ran the generator on our real backend and watched <strong>813 files</strong> materialize in 12 seconds — 506 models, 98 services, 209 barrels, from 26 ABP modules — and then ran <code>flutter analyze</code> and got <strong>zero errors</strong>... I actually laughed out loud.</p>
+
+<p>I've spent hundreds of hours of my career writing those files.</p>
+
+<p>What had been a whole-sprint task — "sync the mobile client with the latest backend" — became a two-command ritual. The mobile team stopped dreading backend releases. When a .NET PR renamed a field, I re-ran the generator, the compiler shouted at the exact three places I needed to fix, and I shipped in fifteen minutes.</p>
+
+<p>That's the part that matters. Not the CLI. Not the code. The <strong>loop getting shorter</strong>.</p>
+
+<h2>A runnable example you can clone</h2>
+
+<p>I put together a minimal quickstart so you don't have to take my word for any of this. It points at the <strong>public ABP CMS Kit demo backend</strong> (<code>https://cms-kit-demo.abpdemo.com</code>) — a real, maintained ABP instance that anyone can hit without credentials. The app has a login screen and a paged blog post list, both built entirely on generated services and models. The only file I wrote by hand is <code>lib/main.dart</code>:</p>
+
+<p><img src="http://localhost:4567/phone.png" alt="Flutter phone mockup showing the example app login screen" style="width: 100%; max-width: 720px;"></p>
+
+<pre><code>git clone https://github.com/abpjs/flutter_abp_proxy_example.git
+cd flutter_abp_proxy_example
+flutter pub get
+flutter run</code></pre>
+
+<p>Default credentials: <code>admin</code> / <code>1q2w3E*</code>. Or tap <em>"Browse blog posts as guest"</em> to skip login — the list endpoint is public.</p>
+
+<p>Every DTO the app uses, every service it calls, lives under <code>lib/data/proxy/</code> and was generated. Not one line of it was typed by me. When the ABP team adds a new endpoint to the demo, I re-run the generator and it appears.</p>
+
+<p>That loop — the one that used to take hours — is the whole point.</p>
+
+<h2>The parts I'm proud of (and the parts I'm not)</h2>
+
+<p>I'm proud that the type mapper handles generic arguments recursively, that it unwraps <code>ActionResult&lt;T&gt;</code>, that it detects <code>IRemoteStreamContent</code> nested inside DTOs and automatically flips the method to multipart, that it generates <code>unknown</code> fallback members on enums so a new backend enum value won't crash your old client.</p>
+
+<p>I'm less proud that I shipped a version with <code>String??</code> in it. Twice.</p>
+
+<p>I'm proud that the package has <strong>113 passing tests</strong>, that <code>dart analyze</code> is clean, that the published package weighs <strong>180 KB</strong> and has zero transitive dependencies beyond <code>args</code> and <code>path</code>.</p>
+
+<p>I'm less proud of the hour I spent debugging why <code>freezed</code> v3 was rejecting <code>class</code> declarations before realizing I needed to prefix them with <code>abstract</code>.</p>
+
+<p>I'm proud that it's now being used in production on a real mobile app with hundreds of screens and dozens of ABP modules, and that the analyzer reports zero errors on the generated output.</p>
+
+<p>I'm not yet proud of the documentation. That's the next thing.</p>
+
+<h2>What's next</h2>
+
+<p>I want to add:</p>
+
+<ul>
+  <li><strong>A full Flutter boilerplate template</strong> — a cloneable starter that mirrors ABP's official Angular UI: auth flow, multi-tenancy, navigation shell, theming.</li>
+  <li><strong>A generated translator</strong> wired into ABP's language API, with ready-to-use widgets like a fully localized login page.</li>
+  <li><strong>Permission-aware widgets</strong> — a <code>@Permission('...')</code> layer tied to ABP's permission system, so buttons, routes, and menus hide themselves automatically.</li>
+  <li><strong>Management screens</strong> — pre-built Flutter pages for users, roles, tenants, settings, and audit logs, matching the ones ABP's Angular UI ships with.</li>
+</ul>
+
+<p>The end state is simple: if ABP teams can bootstrap an Angular frontend in one command, they should be able to do the same thing in Flutter.</p>
+
+<p>Try it. Break it. Tell me what's missing.</p>
+
+<hr>
+
+<p><strong>Links</strong></p>
+
+<ul>
+  <li>📦 <a href="https://pub.dev/packages/flutter_abp_proxy"><code>flutter_abp_proxy</code> on pub.dev</a></li>
+  <li>🐙 <a href="https://github.com/abpjs/flutter_abp_proxy">Source on GitHub</a></li>
+  <li>▶️ <a href="https://github.com/abpjs/flutter_abp_proxy_example">Runnable example app</a></li>
+  <li>🌐 <a href="https://abp.io">ABP Framework</a></li>
+</ul>
+
+<p>If this saves you even one evening, a <a href="https://github.com/sponsors/abpjs">GitHub Sponsors</a> tip is appreciated — it's what keeps me maintaining the project.</p>
+
+<hr>
+
+<p><em>I'm <a href="https://tekthar.com">Abdulkarim Itani</a>, a mobile engineer working on ABP-backed apps. I write about the unglamorous middle layer between backends and users — the code nobody wants to own, but somebody has to. Follow me if that sounds like your kind of problem.</em></p>
+
+</body>
+</html>

@@ -1,3 +1,8 @@
+## 0.2.1
+
+- Repo moved from `abpjs` to `tekthar` org on GitHub.
+- Updated repository, issue tracker, and funding URLs in pubspec.yaml.
+
 ## 0.2.0
 
 - Fix: barrel files are no longer generated at root and module levels to prevent
