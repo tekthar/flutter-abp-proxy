@@ -1,0 +1,12 @@
+# Dependabot version updates. Security updates are switched on in the repository settings; the ignore rules below hold them back too.
+version: 2
+updates:
+  # Dart and Flutter packages (pubspec.yaml). Minor and patch bumps arrive as one grouped pull request.
+  - package-ecosystem: pub
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      pub-minor-patch:
+        update-types: [minor, patch]
